@@ -59,7 +59,7 @@ These items have default values which can be overridden by supplying a command l
 
 For example to override the public port if the assembled jar file is named `acc.jar`:
 
-    java -cp acc.jar com.teseellation.demo.Main run-demo --public-port 8000
+    java -cp acc.jar com.tessellation.demo.Main run-demo --public-port 8000
 
 
 ## Key store
@@ -87,13 +87,13 @@ sbt "run run-demo"
 To run an assembled jar which has been named `acc.jar`, using the default port 19000:
 
 ```
-java -cp acc.jar com.teseellation.demo.Main run-demo
+java -cp acc.jar com.tessellation.demo.Main run-demo
 ```
 
 To run an assembled jar which has been named `acc.jar` and override the tessellation url:
 
 ```
-java -cp acc.jar com.teseellation.demo.Main run-demo  --tessellation-url-prefix http://localhost:8000
+java -cp acc.jar com.tessellation.demo.Main run-demo  --tessellation-url-prefix http://localhost:8000
 ```
 
 

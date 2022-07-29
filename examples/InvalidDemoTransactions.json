@@ -1,17 +1,17 @@
 [
   {
-    "txnid": "txnid1",
+    "txnid": "id1",
     "resourceid": "resource_id",
-    "data1": 2000
+    "data1": 1000
   },
   {
     "txnid": "txnid2",
     "resourceid": "resource_id",
-    "data1": 2000
+    "data1": 0
   },
   {
     "txnid": "txnid3",
     "resourceid": "resource_id",
-    "data1": 3000
+    "data1": -1
   }
 ]

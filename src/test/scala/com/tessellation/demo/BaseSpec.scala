@@ -23,20 +23,21 @@ import scala.collection.immutable.{SortedMap, TreeMap, TreeSet}
 trait BaseSpec extends AnyWordSpec with Matchers {
   implicit val runtime: IORuntime = IORuntime.global
 
-  val transaction1: DemoTransaction = DemoTransaction("id1", "resourceid", 1000)
-  val transaction2: DemoTransaction = DemoTransaction("id2", "resourceid", 2000)
+  val transaction1: DemoTransaction = DemoTransaction("txnid1", "resourceid", 1000)
+  val transaction2: DemoTransaction = DemoTransaction("txnid2", "resourceid", 2000)
   val multipleTransactions: Seq[DemoTransaction] = Seq(transaction1, transaction2)
+  val invalidTransactions = List(transaction1, transaction1.copy(txnid = "12345"))
 
   val singleTransactionSequenceBytes: Array[Byte] =
     Array(
       120, 1, -22, 7, 3, 100, 97, 116, 97, -79, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 116, 120, 110, 105,
-      -28, 2, -48, 15, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 3, 105, 100, -79, 0)
+      -28, 2, -48, 15, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 6, 116, 120, 110, 105, 100, -79, 0)
 
   val multipleTransactionSequenceBytes: Array[Byte] =
     Array(
       120, 2, -22, 7, 3, 100, 97, 116, 97, -79, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 116, 120, 110, 105,
-      -28, 2, -48, 15, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 3, 105, 100, -79, 0, -22, 7, 2, -96,
-      31, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 3, 105, 100, -78, 0)
+      -28, 2, -48, 15, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 6, 116, 120, 110, 105, 100, -79, 0,
+      -22, 7, 2, -96, 31, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 6, 116, 120, 110, 105, 100, -78, 0)
 
   val stateChannelSnapshotBinary: StateChannelSnapshotBinary =
     StateChannelSnapshotBinary(Hash.empty, multipleTransactionSequenceBytes)
@@ -57,13 +58,12 @@ trait BaseSpec extends AnyWordSpec with Matchers {
 
   val stateChannelSnapshotBinaryWithSingleTransactionBytes: Array[Byte] =
     Array(
-      -37, 4, 2, 99, 111, 110, 116, 101, 110, -12, 108, 97, 115, 116, 83, 110, 97, 112, 115, 104, 111, 116, 72, 97, 115,
-      -24, 47, 47, 120, 1, -22, 7, 3, 100, 97, 116, 97, -79, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 116, 120,
-      110, 105, -28, 2, -48, 15, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 3, 105, 100, -79, 0, 0, 67,
-      3, -63, 1, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
+      -37, 4, 2, 99, 111, 110, 116, 101, 110, -12, 108, 97, 115, 116, 83, 110, 97, 112, 115, 104, 111, 116, 72, 97,
+      115, -24, 50, 50, 120, 1, -22, 7, 3, 100, 97, 116, 97, -79, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 116,
+      120, 110, 105, -28, 2, -48, 15, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 6, 116, 120, 110, 105,
+      100, -79, 0, 0, 67, 3, -63, 1, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
       48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
-      48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0
-    )
+      48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0)
 
   val stateChannelSnapshotBinaryWithSingleTransaction: StateChannelSnapshotBinary =
     StateChannelSnapshotBinary(Hash.empty, singleTransactionSequenceBytes)

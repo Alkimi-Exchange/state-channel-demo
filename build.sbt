@@ -6,7 +6,7 @@ version := "0.1"
 scalaVersion := "2.13.6"
 
 val http4sVersion = "0.23.10"
-val constellationVersion = "0.11.0-SNAPSHOT"
+val constellationVersion = "0.11.2"
 val pureConfigVersion = "0.17.1"
 
 ThisBuild / resolvers ++= List(

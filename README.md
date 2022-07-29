@@ -2,6 +2,30 @@
 
 Simple integrations with the tessellation directed acyclic graph (dag).
 
+
+## Tessellation
+This project depends on the constellation tessellation libraries. See:
+
+  https://github.com/constellation-Labs/tessellation
+
+The project has been developed against release `v0.11.2`:
+
+  https://github.com/Constellation-Labs/tessellation/releases/tag/v0.11.2
+
+As of the time of writing, in order to build this project you will need to clone, assemble and locally release this version of the tessellation code. 
+Assuming you have a directory `/workspace` then the required steps will be something like the following:
+
+```
+git clone https://github.com/Constellation-Labs/tessellation.git
+cd tessellation
+git checkout v0.11.2
+sbt assembly
+sbt publishM2 
+```
+
+You will need at least one tessellation L0 (genesis) node running in order to test this service - please refer to the tessellation documentation.
+
+
 ## Build and run
 To compile:
 ```
@@ -21,12 +45,26 @@ sbt assembly
 
 ## API
 
-| *Resource*                            | *Method* | *Query Paramaters* | *Description*                                                                             |
-|---------------------------------------|----------|--------------------|-------------------------------------------------------------------------------------------|
-| ```/demo/ping```                      | GET      |                    | Tests server availability.                                                                |
-| ```/demo/global-snapshots/:ordinal``` | GET      |                    | Returns a string representation of the global-snapshot identified by the ordinal.         |
-| ```/demo/transactions/:ordinal```     | GET      |                    | Returns any demo transactions persisted in the global snapshot with the supplied ordinal. |
-| ```/demo/state-channel-snapshot```    | POST     | lastSnapshotHash   | Returns a signed copy of the supplied transaction or sequence of transactions.            |
+| *Resource*                            | *Method* | *Query Paramaters* | *Description*                                                                                                        |
+|---------------------------------------|----------|--------------------|----------------------------------------------------------------------------------------------------------------------|
+| ```/demo/ping```                      | GET      |                    | Tests server availability.                                                                                           |
+| ```/demo/global-snapshots/:ordinal``` | GET      |                    | Returns a string representation of the global-snapshot identified by the ordinal.                                    |
+| ```/demo/transactions/:ordinal```     | GET      |                    | Returns any demo transactions persisted in the global snapshot with the supplied ordinal.                            |
+| ```/demo/state-channel-snapshot```    | POST     | lastSnapshotHash   | Returns a signed copy of the supplied transaction or sequence of transactions if valid; else BadRequest              |
+
+Note that `/demo/state-channel-snapshot` demonstrates simple validation of payloads.
+
+The `POST` payload is a `json` body encoding either a single `DemoTransaction` or a sequence of `DemoTransactions`, e.g.
+
+    {
+        "txnid": "txnid1",
+        "resourceid": "resource_id",
+        "data1": 1000
+    }
+
+The validation rules applied are that:
+* the 'txnid" field length must be > 5 characters; and
+* the 'data1" field value must be > 0
 
 
 ## Configuration
@@ -124,6 +162,12 @@ curl -v -X POST http://localhost:19000/demo/state-channel-snapshot?lastSnapshotH
 To create a state channel snapshot from multiple sample transactions using the default last snapshot hash:
 ```
 curl -v -X POST http://localhost:19000/demo/state-channel-snapshot -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/MultipleDemoTransactions.json
+```
+
+
+To submit invalid sample transactions in order to see a validation failure with a subsequent `BadRequest` response:
+```
+curl -v -X POST http://localhost:19000/demo/state-channel-snapshot -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/InvalidDemoTransactions.json
 ```
 
 

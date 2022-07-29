@@ -3,13 +3,13 @@ package com.tessellation.demo.http
 import cats.data.NonEmptyList
 import cats.effect.IO
 import com.tessellation.demo.domain.DemoTransaction
-import com.tessellation.demo.modules.KryoCodec
+import com.tessellation.demo.modules.{DemoTransactionValidationError, KryoCodec}
 import com.tessellation.demo.{BaseSpec, SignerSpecOps}
 import io.circe.Json
 import io.circe.generic.auto._
 import io.circe.syntax.EncoderOps
 import org.http4s.Method.{GET, POST}
-import org.http4s.Status.Ok
+import org.http4s.Status.{BadRequest, Ok}
 import org.http4s.Uri.unsafeFromString
 import org.http4s.circe.{jsonOf, _}
 import org.http4s.{EntityDecoder, Request}
@@ -83,9 +83,9 @@ class DemoRoutesSpec extends BaseSpec with SignerSpecOps {
 
   private val fixtures =
     Seq(
-      Fixture("a single transaction", transactionJson, singleTransactionSequenceBytes),
-      Fixture("an array containing a single transaction", Seq(transaction1).asJson, singleTransactionSequenceBytes),
-      Fixture("an array containing multiple transactions", multipleTransactions.asJson, multipleTransactionSequenceBytes)
+      Fixture("a single valid transaction", transactionJson, singleTransactionSequenceBytes),
+      Fixture("an array containing a single valid transaction", Seq(transaction1).asJson, singleTransactionSequenceBytes),
+      Fixture("an array containing multiple valid transactions", multipleTransactions.asJson, multipleTransactionSequenceBytes)
     )
 
   "POST " + stateChannelSnapshotEndpoint should {
@@ -107,6 +107,24 @@ class DemoRoutesSpec extends BaseSpec with SignerSpecOps {
           response.status shouldBe Ok
           isSigned(StateChannelSnapshotBinary(Hash.empty, fixture.expectedSerialisedBytes), signed) shouldBe true
         }
+      }
+    }
+
+    "return Bad Request with the signed encoded request as a body" when {
+      "an invalid transaction is posted" in {
+        implicit val decoder: EntityDecoder[IO, List[DemoTransactionValidationError]] =
+          jsonOf[IO, List[DemoTransactionValidationError]]
+
+        val response =
+          routes()
+            .run(Request(POST, unsafeFromString(stateChannelSnapshotEndpoint)).withEntity(invalidTransactions.asJson))
+            .value
+            .unsafeRunSync()
+            .get
+
+        response.status shouldBe BadRequest
+        response.as[List[DemoTransactionValidationError]].unsafeRunSync() shouldBe
+          List(DemoTransactionValidationError("txnid length must be greater than 5 but was 12345"))
       }
     }
   }

@@ -1,18 +1,21 @@
 package com.tessellation.demo.http
 
+import cats.data.{NonEmptyChain, ValidatedNec}
 import cats.effect.Async
 import cats.syntax.all._
 import com.tessellation.demo.domain.DemoTransaction
-import com.tessellation.demo.modules.{KryoCodec, Signer}
+import com.tessellation.demo.modules.DemoTransactionValidator.validateTransactions
+import com.tessellation.demo.modules.{DemoTransactionValidationError, KryoCodec, Signer}
 import eu.timepit.refined.numeric.NonNegative
 import eu.timepit.refined.refineV
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.http4s.circe.CirceEntityCodec.circeEntityEncoder
+import org.http4s.circe.CirceEntityDecoder._
 import org.http4s.circe.{jsonOf, _}
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.Router
-import org.http4s.{EntityDecoder, HttpRoutes, Request}
+import org.http4s.{EntityDecoder, HttpRoutes}
 import org.tessellation.dag.snapshot.{GlobalSnapshot, SnapshotOrdinal, StateChannelSnapshotBinary}
 import org.tessellation.schema.address.Address
 import org.tessellation.security.hash.Hash
@@ -76,28 +79,31 @@ class DemoRoutes[F[_]: Async](codec: KryoCodec[F],
     case request @ POST -> Root / "state-channel-snapshot" =>
       val lastSnapshotHash = request.params.get("lastSnapshotHash").fold(Hash.empty)(Hash(_))
 
-      def signed(request: Request[F], lastSnapshotHash: Hash, logger: SelfAwareStructuredLogger[F]) = {
-        def transactionsFromRequest() =
-          request
-            .attemptAs[DemoTransaction]
-            .toOption
-            .fold(request.as[Seq[DemoTransaction]])(t => Seq(t).pure)
-            .flatten
+      def transactionsFromRequest() =
+        request
+          .attemptAs[DemoTransaction]
+          .toOption
+          .fold(request.as[List[DemoTransaction]])(t => List(t).pure)
+          .flatten
 
+      def signed(transactions: Seq[DemoTransaction], lastSnapshotHash: Hash, logger: SelfAwareStructuredLogger[F]) =
         for {
-          transactions <- transactionsFromRequest()
-          _ <- logger.info(s"got transactions: $transactions")
           encoded <- codec.encode(transactions)
           _ <- logger.info(s"encoded transactions: ${{ encoded.mkString("Array(", ", ", ")") }}")
           signed <- signer.sign(StateChannelSnapshotBinary(lastSnapshotHash, encoded))
           _ <- logger.info(s"signed transactions: $signed")
-        } yield signed
-      }
+          result <- Ok(signed.asJson)
+        } yield result
+
+      def badRequest(errors: NonEmptyChain[DemoTransactionValidationError]) = BadRequest(errors.toList.asJson)
 
       for {
         logger <- mkLogger
-        signed <- signed(request, lastSnapshotHash, logger)
-        result <- Ok(signed.asJson)
+        transactions <- transactionsFromRequest()
+        _ <- logger.info(s"got transactions: $transactions")
+        validated: ValidatedNec[DemoTransactionValidationError, Unit] = validateTransactions(transactions)
+        _ <- logger.info(s"validated transactions: $validated")
+        result <- validated.fold(errors => badRequest(errors), _ => signed(transactions, lastSnapshotHash, logger))
       } yield result
   }
 

@@ -97,7 +97,7 @@ These items have default values which can be overridden by supplying a command l
 
 For example to override the public port if the assembled jar file is named `acc.jar`:
 
-    java -cp acc.jar com.tessellation.demo.Main run-demo --public-port 8000
+    java -cp acc.jar com.teseellation.demo.Main run-demo --public-port 8000
 
 
 ## Key store
@@ -125,13 +125,13 @@ sbt "run run-demo"
 To run an assembled jar which has been named `acc.jar`, using the default port 19000:
 
 ```
-java -cp acc.jar com.tessellation.demo.Main run-demo
+java -cp acc.jar com.teseellation.demo.Main run-demo
 ```
 
 To run an assembled jar which has been named `acc.jar` and override the tessellation url:
 
 ```
-java -cp acc.jar com.tessellation.demo.Main run-demo  --tessellation-url-prefix http://localhost:8000
+java -cp acc.jar com.teseellation.demo.Main run-demo  --tessellation-url-prefix http://localhost:8000
 ```
 
 
@@ -147,31 +147,75 @@ curl -i http://localhost:19000/demo/global-snapshots/0
 ```
 
 
-To create a state channel snapshot from a single sample transaction using the default last snapshot hash:
+To create a signed state channel binary snapshot payload from a single sample transaction using the default last snapshot hash:
 ```
-curl -v -X POST http://localhost:19000/demo/state-channel-snapshot -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/DemoTransaction.json
+curl -v -X POST http://localhost:19000/demo/data-transactions/sign -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/DemoTransaction.json
+```
+The payload can be submitted to `tessellation` L0
+
+
+To create a signed state channel binary snapshot payload from a single sample transaction using a specified last snapshot hash:
+```
+curl -v -X POST http://localhost:19000/demo/data-transactions/sign?lastSnapshotHash=649738443ff34068f267428420e42cbcc79824bea7e004faffbca67fddad3f08 -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/DemoTransaction.json
+```
+The payload can be submitted to `tessellation` L0
+
+
+To create a signed state channel binary snapshot payload from multiple sample transactions using the default last snapshot hash:
+```
+curl -v -X POST http://localhost:19000/demo/data-transactions/sign?lastSnapshotHash=649738443ff34068f267428420e42cbcc79824bea7e004faffbca67fddad3f08 -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/MultipleDemoTransactions.json
+```
+The payload can be submitted to `tessellation` L0
+
+
+To submit invalid sample transactions to `/data-transactions/sign` in order to see a validation failure with a subsequent `BadRequest` response:
+```
+curl -v -X POST http://localhost:19000/demo/data-transactions/sign?lastSnapshotHash=649738443ff34068f267428420e42cbcc79824bea7e004faffbca67fddad3f08 -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/InvalidDemoTransactions.json
 ```
 
 
-To create a state channel snapshot from a single sample transaction using a specified last snapshot hash:
+To retrieve any data-transactions you might have persisted in the tessellation global snapshot ordinal 0:
 ```
-curl -v -X POST http://localhost:19000/demo/state-channel-snapshot?lastSnapshotHash=649738443ff34068f267428420e42cbcc79824bea7e004faffbca67fddad3f08 -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/DemoTransaction.json
-```
-
-
-To create a state channel snapshot from multiple sample transactions using the default last snapshot hash:
-```
-curl -v -X POST http://localhost:19000/demo/state-channel-snapshot -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/MultipleDemoTransactions.json
+curl -i http://localhost:19000/demo/data-transactions/0
 ```
 
 
-To submit invalid sample transactions in order to see a validation failure with a subsequent `BadRequest` response:
+To see the starting token balance of wallet 1:
 ```
-curl -v -X POST http://localhost:19000/demo/state-channel-snapshot -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/InvalidDemoTransactions.json
+curl -i http://localhost:19000/demo/token-balances/DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvL
 ```
 
 
-To retrieve all transactions persisted in ordinal 1:
+To see the starting token balance of wallet 2:
 ```
-curl -i http://localhost:19000/demo/transactions/1
+curl -i http://localhost:19000/demo/token-balances/DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvP
+```
+
+
+To see the starting token balance of wallet 3:
+```
+curl -i http://localhost:19000/demo/token-balances/DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvT
+```
+
+
+To make a transaction transferring 100 token from wallet 1 to wallet 2:
+```
+curl -v -X POST http://localhost:19000/demo/token-transactions  -H 'Content-Type:application/json' -H "Accept:application/json" -d @examples/TokenTransaction.json
+```
+
+
+Use the returned transaction id to view the persisted transaction:
+```
+curl -i http://localhost:19000/demo/token-transactions/b74a1fe3-1b89-432a-9aa7-9004e490cd31
+```
+
+You can see all the token transactions for a wallet address like this:
+``` 
+curl -i http://localhost:19000/demo/token-transactions/wallet/DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvL
+```
+
+You can also view the balance for wallets 1 and 2 again:
+``` 
+curl -i http://localhost:19000/demo/token-balances/DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvL
+curl -i http://localhost:19000/demo/token-balances/DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvP
 ```

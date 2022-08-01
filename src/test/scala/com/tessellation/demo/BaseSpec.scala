@@ -2,9 +2,8 @@ package com.tessellation.demo
 
 import cats.data.{NonEmptyList, NonEmptySet}
 import cats.effect.unsafe.IORuntime
-import com.tessellation.demo.cli.tessellation
-import com.tessellation.demo.domain.DemoTransaction
-import eu.timepit.refined.types.numeric.NonNegLong
+import com.tessellation.demo.domain.{DataTransaction, TokenTransactionRequest, ValidatedTokenTransaction}
+import eu.timepit.refined.types.numeric.{NonNegLong, PosLong}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.tessellation.dag.snapshot._
@@ -23,40 +22,53 @@ import scala.collection.immutable.{SortedMap, TreeMap, TreeSet}
 trait BaseSpec extends AnyWordSpec with Matchers {
   implicit val runtime: IORuntime = IORuntime.global
 
-  val transaction1: DemoTransaction = DemoTransaction("txnid1", "resourceid", 1000)
-  val transaction2: DemoTransaction = DemoTransaction("txnid2", "resourceid", 2000)
-  val multipleTransactions: Seq[DemoTransaction] = Seq(transaction1, transaction2)
-  val invalidTransactions = List(transaction1, transaction1.copy(txnid = "12345"))
+  val dataTransactionsStateChannelAddress: Address = toStateChannelAddress("DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvX")
+  val wallet1Address: Address = toStateChannelAddress("DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvP")
+  val wallet2Address: Address = toStateChannelAddress("DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvT")
+  val wallet3Address: Address = toStateChannelAddress("DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvL")
+  val initialWalletAddresses: Set[Address] = Set(wallet1Address, wallet2Address)
+  val unknownWalletAddress: Address = toStateChannelAddress("DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvH")
+  val positiveAmount = 1
+  val transactionId1: TransactionId = "transactionId1"
 
-  val singleTransactionSequenceBytes: Array[Byte] =
+  val validTokenTransferRequest: TokenTransactionRequest =
+    TokenTransactionRequest(wallet1Address.value.value, wallet2Address.value.value, positiveAmount)
+
+  val validatedTokenTransaction: ValidatedTokenTransaction =
+    ValidatedTokenTransaction(wallet1Address, wallet2Address, PosLong.unsafeFrom(positiveAmount), transactionId1)
+
+
+  val dataTransaction1: DataTransaction = DataTransaction("txnid1", "resourceid", 1000)
+  val dataTransaction2: DataTransaction = DataTransaction("txnid2", "resourceid", 2000)
+  val multipleDataTransactions: Seq[DataTransaction] = Seq(dataTransaction1, dataTransaction2)
+  val invalidDataTransactions = List(dataTransaction1, dataTransaction1.copy(txnid = "12345"))
+
+  val singleDataTransactionSequenceBytes: Array[Byte] =
     Array(
       120, 1, -22, 7, 3, 100, 97, 116, 97, -79, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 116, 120, 110, 105,
       -28, 2, -48, 15, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 6, 116, 120, 110, 105, 100, -79, 0)
 
-  val multipleTransactionSequenceBytes: Array[Byte] =
+  val multipleDataTransactionSequenceBytes: Array[Byte] =
     Array(
       120, 2, -22, 7, 3, 100, 97, 116, 97, -79, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 116, 120, 110, 105,
       -28, 2, -48, 15, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 6, 116, 120, 110, 105, 100, -79, 0,
       -22, 7, 2, -96, 31, 0, 10, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 0, 6, 116, 120, 110, 105, 100, -78, 0)
 
-  val stateChannelSnapshotBinary: StateChannelSnapshotBinary =
-    StateChannelSnapshotBinary(Hash.empty, multipleTransactionSequenceBytes)
+  val stateChannelSnapshotBinaryWithMultipleDataTransactions: StateChannelSnapshotBinary =
+    StateChannelSnapshotBinary(Hash.empty, multipleDataTransactionSequenceBytes)
 
   private val proofs: NonEmptySet[SignatureProof] =
     NonEmptySet.of(SignatureProof(Id(Hex("id")), Signature(Hex("signature"))))
-
-  val stateChannelAddress: Address =
-    tessellation.toStateChannelAddress("DAG45MPJCa2RsStWfdv8RZshrMpsFHhnsiHN7kvX")
 
   val nonEmptyHash: Hash = Hash("649738443ff34068f267428420e42cbcc79824bea7e004faffbca67fddad3f08")
   val signedGlobalSnapshotZero: Signed[GlobalSnapshot] = Signed(globalSnapshotWith(TreeMap.empty), proofs)
 
   val signedGlobalSnapshotOne: Signed[GlobalSnapshot] =
-    Signed(globalSnapshotWith(TreeMap(stateChannelAddress -> nonEmptyHash)), proofs)
+    Signed(globalSnapshotWith(TreeMap(dataTransactionsStateChannelAddress -> nonEmptyHash)), proofs)
 
-  val singleTransaction: Seq[DemoTransaction] = Seq(transaction1)
+  val singleDataTransaction: Seq[DataTransaction] = Seq(dataTransaction1)
 
-  val stateChannelSnapshotBinaryWithSingleTransactionBytes: Array[Byte] =
+  val stateChannelSnapshotBinaryWithSingleDataTransactionBytes: Array[Byte] =
     Array(
       -37, 4, 2, 99, 111, 110, 116, 101, 110, -12, 108, 97, 115, 116, 83, 110, 97, 112, 115, 104, 111, 116, 72, 97,
       115, -24, 50, 50, 120, 1, -22, 7, 3, 100, 97, 116, 97, -79, 114, 101, 115, 111, 117, 114, 99, 101, 105, -28, 116,
@@ -65,8 +77,8 @@ trait BaseSpec extends AnyWordSpec with Matchers {
       48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48,
       48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 48, 0)
 
-  val stateChannelSnapshotBinaryWithSingleTransaction: StateChannelSnapshotBinary =
-    StateChannelSnapshotBinary(Hash.empty, singleTransactionSequenceBytes)
+  val stateChannelSnapshotBinaryWithSingleDataTransaction: StateChannelSnapshotBinary =
+    StateChannelSnapshotBinary(Hash.empty, singleDataTransactionSequenceBytes)
 
   def globalSnapshotWith(lastStateChannelSnapshotHashes: SortedMap[Address, Hash],
                          stateChannelSnapshots: SortedMap[Address, NonEmptyList[StateChannelSnapshotBinary]] = TreeMap.empty): GlobalSnapshot =

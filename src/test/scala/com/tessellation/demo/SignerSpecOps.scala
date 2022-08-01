@@ -1,7 +1,7 @@
 package com.tessellation.demo
 
 import cats.effect.IO
-import com.tessellation.demo.modules.Signer
+import com.tessellation.demo.utils.Signer
 import org.tessellation.dag.snapshot.StateChannelSnapshotBinary
 import org.tessellation.security.signature.Signed
 
